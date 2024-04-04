@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "MASTRONA",
+    "surname": "COGNOME",
+    "hours": 40
+  },
+  {
+    "id": 2,
+    "name": "GIAGIAGIAMBRO",
+    "surname": "COGNOME",
+    "hours": 40
+  },
+  {
+    "id": 3,
+    "name": "MARIO",
+    "surname": "COGNOME",
+    "hours": 38
+  },
+  {
+    "id": 4,
+    "name": "PINO",
+    "surname": "COGNOME",
+    "hours": 38
+  }
+]
