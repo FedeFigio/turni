@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import moment from 'moment/min/moment-with-locales';
 import Dropdown from './components/Dropdown';
+import { initFlowbite } from 'flowbite';
+
 moment.locale('it');
 
 const employees = [
@@ -38,6 +40,10 @@ const employees = [
 ]
 
 function App() {
+  useEffect(() => {
+    initFlowbite()
+  }, [])
+
   const [employeesList, setEmployeesList] = useState([]);
   const [employeeSelected, setEmployeeSelected] = useState("");
   const [dates, setDates] = useState({
@@ -49,19 +55,19 @@ function App() {
     if (employeesList.length) {
       localStorage.setItem("employeesStorage", JSON.stringify(employeesList));
       localStorage.setItem("datesStorage", JSON.stringify(dates));
-    }    
+    }
   }, [employeesList])
 
   useEffect(() => {
     if (localStorage.getItem("employeesStorage")) {
-     const employeesStorage= localStorage.getItem("employeesStorage");
-     const datesStorage= localStorage.getItem("datesStorage");
+      const employeesStorage = localStorage.getItem("employeesStorage");
+      const datesStorage = localStorage.getItem("datesStorage");
 
-     setDates(JSON.parse(datesStorage));
-     setEmployeesList(JSON.parse(employeesStorage));
-    }    
+      setDates(JSON.parse(datesStorage));
+      setEmployeesList(JSON.parse(employeesStorage));
+    }
   }, [])
-  
+
   console.log(employeesList);
   const datesSelected = React.useMemo(() => {
     const start = moment(dates.startDate);
@@ -89,7 +95,7 @@ function App() {
   const handleAddEmployee = () => {
     const newEmployee = {
       ...employees.find(employee => employee.id == employeeSelected),
-      weeks: getWeeks().map(week => week.map(date => ({ date, start: "", startBreak: "", endBreak: "", end: "", hours: "0:00" })))
+      weeks: getWeeks().map(week => week.map(date => ({ date, start: "", startBreak: "", endBreak: "", end: "", hours: "0:00", riposo: false })))
     }
     setEmployeesList([...employeesList, newEmployee]);
   }
@@ -120,15 +126,21 @@ function App() {
     return (
       <tbody>
         {employeesList.map((employee, employeeIndex) => {
-          return <tr key={employee.id + weekIndex}>
-            <td className='border'>{employee.name}</td>
+          return <tr key={employee.id + weekIndex} >
+            <td className='border h-60'>{employee.name}</td>
             {employee.weeks[weekIndex].map((day, dayIndex) => {
 
               return <td className='p-2 border' key={employee.name + dayIndex}>
-                <TimeOptions day={day} setEmployeesList={setEmployeesList} employeeIndex={employeeIndex} dayIndex={dayIndex} weekIndex={weekIndex}></TimeOptions>
+                <TimeOptions day={day} setEmployeesList={setEmployeesList} employeeIndex={employeeIndex} dayIndex={dayIndex} weekIndex={weekIndex} ></TimeOptions>
+
               </td>
             }
+
             )}
+            <td>
+
+
+            </td>
           </tr>
         }
         )}
@@ -170,10 +182,10 @@ function App() {
         </div>
       </div>
       <hr className='mb-12' />
-      {!!employeesList.length&&<div >
-       
+      {!!employeesList.length && <div >
+
         {getWeeks().map((week, weekIndex) => {
-                 return <div className='mb-8' key={weekIndex}>
+          return <div className='mb-8' key={weekIndex}>
             <h6 className='font-bold text-2xl mb-2'>Settimana dal {moment(week[0]).format('DD/MM/YYYY')} al {moment(week[week.length - 1]).format('DD/MM/YYYY')}</h6>
             <div className='overflow-x-auto'>
               <div className='flex items-center'>
@@ -182,13 +194,22 @@ function App() {
                   {renderThead(week)}
                   {renderTbody(weekIndex)}
                 </table>
-
               </div>
             </div>
           </div>
         }
         )}
       </div>}
+
+
+
+
+
+
+
+
+
+
     </div>
   )
 }
@@ -198,6 +219,7 @@ export default App;
 
 
 const TimeOptions = ({ day, setEmployeesList, employeeIndex, dayIndex, weekIndex }) => {
+
   var dataCorrente = moment().format("YYYY-MM-DD");
 
   const handleChangeStart = (e) => {
@@ -237,22 +259,37 @@ const TimeOptions = ({ day, setEmployeesList, employeeIndex, dayIndex, weekIndex
     return `${hours}:${minutes.toString().padStart(2, '0')}`;
   }, [day]);
 
+  const handleChangeRiposo = (e) => {
+    setEmployeesList((state) => {
+      let newState = [...state]
+      newState[employeeIndex].weeks[weekIndex][dayIndex] = { ...newState[employeeIndex].weeks[weekIndex][dayIndex], riposo: true }
+      return newState
+    })
+  }
+
   return (
     <div>
-      <div className='text-center'>{totalDayHours}</div>
-      <div className='flex '>
-        <input className='w-1/2 bg-blue-500/15' placeholder="Ora inizio" onFocus={(e) => e.target.type = 'time'} value={day.start} onChange={handleChangeStart} type={day.start === "" ? "text" : "time"} />
-        <input className='w-1/2' disabled value={day.startBreak} type="time" />
+      <div className='flex justify-between  mb-2'>
+        <Dropdown id={weekIndex} week={weekIndex} handleChangeRiposo={handleChangeRiposo}></Dropdown>
+        <div className='text-center'>{totalDayHours}</div>
       </div>
-      <div className='flex'>
-        <input className='w-1/2' disabled value={day.startBreak} type="time" />
-        <input className='w-1/2' disabled value={day.endBreak} type="time" />
-      </div>
-      <div className='flex'>
-        <input className='w-1/2' disabled value={day.endBreak} type="time" />
-        <input className='w-1/2 bg-blue-500/15' placeholder="Ora fine" onFocus={(e) => e.target.type = 'time'} value={day.end} onChange={handleChangeEnd} type={day.end === "" ? "text" : "time"} />
-      </div>
-      <Dropdown></Dropdown>
+      {!day.riposo ? <>
+
+        <div className='flex '>
+          <input className='w-1/2 bg-blue-500/15' placeholder="Ora inizio" onFocus={(e) => e.target.type = 'time'} value={day.start} onChange={handleChangeStart} type={day.start === "" ? "text" : "time"} />
+          <input className='w-1/2' disabled value={day.startBreak} type="time" />
+        </div>
+        <div className='flex'>
+          <input className='w-1/2' disabled value={day.startBreak} type="time" />
+          <input className='w-1/2' disabled value={day.endBreak} type="time" />
+        </div>
+        <div className='flex'>
+          <input className='w-1/2' disabled value={day.endBreak} type="time" />
+          <input className='w-1/2 bg-blue-500/15' placeholder="Ora fine" onFocus={(e) => e.target.type = 'time'} value={day.end} onChange={handleChangeEnd} type={day.end === "" ? "text" : "time"} />
+        </div>
+      </> : "riposo"
+      }
+
     </div>
   )
 }
