@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import moment from 'moment/min/moment-with-locales';
-import Dropdown from './components/Dropdown';
 import { initFlowbite } from 'flowbite';
+import Modale from './components/Modal';
+import { Button } from 'flowbite-react';
+import Dropdowns from './components/Dropdown';
 
 moment.locale('it');
 
@@ -68,7 +70,6 @@ function App() {
     }
   }, [])
 
-  console.log(employeesList);
   const datesSelected = React.useMemo(() => {
     const start = moment(dates.startDate);
     const end = moment(dates.endDate);
@@ -95,15 +96,17 @@ function App() {
   const handleAddEmployee = () => {
     const newEmployee = {
       ...employees.find(employee => employee.id == employeeSelected),
-      weeks: getWeeks().map(week => week.map(date => ({ date, start: "", startBreak: "", endBreak: "", end: "", hours: "0:00", riposo: false })))
+      weeks: getWeeks().map(week => week.map(date => ({ date, start: "", startBreak: "", endBreak: "", end: "", dayHours: "", riposo: false, ferie: false, festivita: false })))
     }
     setEmployeesList([...employeesList, newEmployee]);
+    setEmployeeSelected("");
   }
 
   const renderThead = (week) => {
     return (
       <thead>
         <tr>
+          <th className=''></th>
           <th className='border'>Dipendente</th>
           {week.map(date => <th className='p-2 border' key={date}>
             <div className='flex flex-col'>
@@ -121,29 +124,42 @@ function App() {
     )
   }
 
+  const deleteEmployee = (employeeIndex) => {
+    setEmployeesList(employeesList.filter((employee, index) => index !== employeeIndex));
+  }
+
+  function renderWeekHours() {
+
+  }
 
   const renderTbody = (weekIndex) => {
     return (
       <tbody>
         {employeesList.map((employee, employeeIndex) => {
           return <tr key={employee.id + weekIndex} >
-            <td className='border h-60'>{employee.name}</td>
-            {employee.weeks[weekIndex].map((day, dayIndex) => {
-
-              return <td className='p-2 border' key={employee.name + dayIndex}>
+            <td className='px-4 '>
+              <Modale employee={employee} onSubmit={() => deleteEmployee(employeeIndex)}></Modale>
+            </td>
+            <td className='border px-4'>{employee.name}</td>
+            {employee?.weeks[weekIndex]?.map((day, dayIndex) => {
+              return <td className={`border align-text-top p-4 ${day.ferie || day.festivita || day.riposo ? 'bg-green-200/35' : ''}`} key={employee.name + dayIndex}>
                 <TimeOptions day={day} setEmployeesList={setEmployeesList} employeeIndex={employeeIndex} dayIndex={dayIndex} weekIndex={weekIndex} ></TimeOptions>
-
               </td>
             }
-
             )}
-            <td>
+            <td className='border'>
+              <div className='text-center'>
 
-
+                {totalWeekHours(employee.weeks[weekIndex])}
+              </div>
             </td>
           </tr>
         }
         )}
+        <tr>
+          <td>aaa</td>
+          {renderWeekHours(employeesList, weekIndex)}
+        </tr>
       </tbody>
     )
   }
@@ -152,22 +168,38 @@ function App() {
     localStorage.removeItem("datesStorage");
     setEmployeesList([]);
     setDates({ startDate: "", endDate: "" });
-
   }
+  const totalWeekHours = (data) => {
+    let totalHours = 0;
+    let totalMinutes = 0;
 
+    data?.forEach(item => {
+      if (item.dayHours) {
+        const [hours, minutes] = item.dayHours.split(':').map(Number);
+        totalHours += hours;
+        totalMinutes += minutes;
+      }
+    });
+
+    // Converti i minuti in ore se necessario
+    totalHours += Math.floor(totalMinutes / 60);
+    totalMinutes %= 60;
+
+    return `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
+  };
   return (
     <div className='w-4/5 mx-auto'>
       <h1 className="text-3xl font-bold underline text-center text-red-800">Turni</h1>
-      <div className='mb-12 gap-12 flex items-end'>
+      <div className='mb-12 gap-12 flex justify-between items-end'>
         <div>
           <div className='flex gap-4'>
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Dal</label>
-              <input className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="date" placeholder='Dal' value={dates.startDate} onChange={(e) => setDates({ ...dates, startDate: e.target.value })} />
+              <input disabled={employeesList.length} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="date" placeholder='Dal' value={dates.startDate} onChange={(e) => setDates({ ...dates, startDate: e.target.value })} />
             </div>
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Al</label>
-              <input className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="date" placeholder='Al' value={dates.endDate} onChange={(e) => setDates({ ...dates, endDate: e.target.value })} />
+              <input disabled={employeesList.length} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" type="date" placeholder='Al' value={dates.endDate} onChange={(e) => setDates({ ...dates, endDate: e.target.value })} />
             </div>
           </div>
         </div>
@@ -175,10 +207,19 @@ function App() {
 
           <select className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" value={employeeSelected} onChange={(event) => setEmployeeSelected(event.target.value)} name="worker" >
             <option value="">Seleziona dipendente</option>
-            {employees.map(worker => <option key={worker.id} value={worker.id}>{worker.name}</option>)}
+            {employees.filter((e) => {
+              let employeeFound = employeesList.find(employee => {
+                return employee.id == e.id
+              })
+              return !employeeFound ? true : false
+
+            }).map(worker => <option key={worker.id} value={worker.id}>{worker.name}</option>)}
           </select>
-          <button onClick={() => handleAddEmployee()} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Aggiungi dipendente</button>
-          <button onClick={() => handleNew()} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Nuovo piano</button>
+          <Button color="blue" disabled={employeeSelected == ""} onClick={() => handleAddEmployee()} type="button" >Aggiungi dipendente</Button>
+        </div>
+        <div>
+          <Button color="blue" onClick={() => handleNew()} type="button" >Nuovo piano</Button>
+
         </div>
       </div>
       <hr className='mb-12' />
@@ -200,16 +241,6 @@ function App() {
         }
         )}
       </div>}
-
-
-
-
-
-
-
-
-
-
     </div>
   )
 }
@@ -241,40 +272,59 @@ const TimeOptions = ({ day, setEmployeesList, employeeIndex, dayIndex, weekIndex
 
     setEmployeesList((state) => {
       let newState = [...state]
-      newState[employeeIndex].weeks[weekIndex][dayIndex] = { ...newState[employeeIndex].weeks[weekIndex][dayIndex], end: end }
+      let current = newState[employeeIndex].weeks[weekIndex][dayIndex]
+      newState[employeeIndex].weeks[weekIndex][dayIndex] = { ...current, end: end, dayHours: getHours(current.start, end) }
       return newState
     })
   }
-  const totalDayHours = useMemo(() => {
-    const start = moment(day.date + " " + day.start);
-    const end = moment(day.date + " " + day.end);
-    end.subtract(30, 'minutes');
-    const diffMinutes = end.diff(start, 'minutes');
-    if (diffMinutes <= 0) {
-      return '0:00';
+
+
+  const getHours = (start, end) => {
+    if (start && end) {
+      const format = 'HH:mm';
+      const startTime = moment(start, format);
+      const endTime = moment(end, format);
+
+      if (endTime.isBefore(startTime)) {
+        endTime.add(1, 'day');
+      }
+
+      const duration = moment.duration(endTime.diff(startTime)).subtract(30, 'minutes');
+      const hours = Math.floor(duration.asHours());
+      const minutes = duration.minutes();
+
+      return (`${hours}:${minutes.toString().padStart(2, '0')}`);
     }
-    const hours = Math.floor(diffMinutes / 60);
-    const minutes = diffMinutes % 60;
 
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
-  }, [day]);
+  }
 
-  const handleChangeRiposo = (e) => {
+
+  const handleChangeOptions = (option) => {
+    let normalize = { riposo: false, ferie: false, festivita: false, start: "", startBreak: "", endBreak: "", end: "", dayHours: "" }
+
     setEmployeesList((state) => {
       let newState = [...state]
-      newState[employeeIndex].weeks[weekIndex][dayIndex] = { ...newState[employeeIndex].weeks[weekIndex][dayIndex], riposo: true }
+      let current = newState[employeeIndex].weeks[weekIndex][dayIndex]
+      normalize[option] = !current[option]
+      newState[employeeIndex].weeks[weekIndex][dayIndex] = { ...current, ...normalize }
       return newState
     })
   }
 
-  return (
-    <div>
-      <div className='flex justify-between  mb-2'>
-        <Dropdown id={weekIndex} week={weekIndex} handleChangeRiposo={handleChangeRiposo}></Dropdown>
-        <div className='text-center'>{totalDayHours}</div>
-      </div>
-      {!day.riposo ? <>
 
+  const renderOptions = (day) => {
+
+    if (day.riposo) {
+      return <div className='text-3xl font-semibold text-center mb-4'>Riposo</div>
+    }
+    else if (day.ferie) {
+      return <div className='text-3xl font-semibold text-center mb-4'>Ferie</div>
+    }
+    else if (day.festivita) {
+      return <div className='text-3xl font-semibold text-center mb-4'>Festività non lavorata</div>
+    }
+    else {
+      return <>
         <div className='flex '>
           <input className='w-1/2 bg-blue-500/15' placeholder="Ora inizio" onFocus={(e) => e.target.type = 'time'} value={day.start} onChange={handleChangeStart} type={day.start === "" ? "text" : "time"} />
           <input className='w-1/2' disabled value={day.startBreak} type="time" />
@@ -287,8 +337,21 @@ const TimeOptions = ({ day, setEmployeesList, employeeIndex, dayIndex, weekIndex
           <input className='w-1/2' disabled value={day.endBreak} type="time" />
           <input className='w-1/2 bg-blue-500/15' placeholder="Ora fine" onFocus={(e) => e.target.type = 'time'} value={day.end} onChange={handleChangeEnd} type={day.end === "" ? "text" : "time"} />
         </div>
-      </> : "riposo"
-      }
+      </>
+    }
+
+  }
+
+  return (
+    <div className="flex flex-col">
+      <div className='flex justify-between  mb-4'>
+        <Dropdowns day={day} id={weekIndex} week={weekIndex} handleChangeOptions={handleChangeOptions}></Dropdowns>
+        {!day.riposo && !day.ferie && !day.festivita && <div className='text-center font-semibold'>{day.dayHours && `${day.dayHours} ore`}</div>}
+      </div>
+      <div className='flex-grow'>
+
+        {renderOptions(day)}
+      </div>
 
     </div>
   )
